@@ -22,6 +22,33 @@
             overflow-x: hidden;
             line-height: 1.6;
         }
+        .next-songs-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: #000;
+    border-top: 1px solid #333;
+}
+
+.next-song-deck1, .next-song-deck2 {
+    font-size: 0.9em;
+    color: #00ff00;
+}
+
+.next-song-label {
+    color: #666;
+    margin-right: 10px;
+}
+
+.playlist-title {
+    color: #00ff00;
+    font-size: 1.2em;
+    text-align: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+}
 /* Adicione este CSS aos seus estilos */
 .message-container {
     width: 100%;
@@ -146,7 +173,7 @@
         }
 
         .main-container {
-    margin-top: 190px; /* Reduzido do valor anterior */
+    margin-top: 233px; /* Reduzido do valor anterior */
     padding: 0 20px; /* Remove padding top e bottom, mantém nas laterais */
     width: 100%;
     max-width: 1400px;
@@ -687,6 +714,17 @@
                 <i class="fas fa-search"></i>
             </button>
         </div>
+        <!-- Adicione esta estrutura para as próximas músicas -->
+<div class="next-songs-container">
+    <div class="next-song-deck1">
+        <span class="next-song-label">Próxima música Deck 1:</span>
+        <span id="nextSongDeck1">Nenhuma música na fila</span>
+    </div>
+    <div class="next-song-deck2">
+        <span class="next-song-label">Próxima música Deck 2:</span>
+        <span id="nextSongDeck2">Nenhuma música na fila</span>
+    </div>
+</div>
     </div>
 <!-- Adicione após a div search-container -->
 <div class="message-container">
@@ -976,11 +1014,12 @@
         }
 
         function playDeck1() {
-            if (player1) {
-                player1.playVideo();
-                updateEqualizer(1, true);
-            }
-        }
+    if (player1) {
+        player1.playVideo();
+        updateEqualizer(1, true);
+        clearNextSong(1);
+    }
+}
 
         function pauseDeck1() {
             if (player1) {
@@ -997,11 +1036,12 @@
         }
 
         function playDeck2() {
-            if (player2) {
-                player2.playVideo();
-                updateEqualizer(2, true);
-            }
-        }
+    if (player2) {
+        player2.playVideo();
+        updateEqualizer(2, true);
+        clearNextSong(2);
+    }
+}
 
         function pauseDeck2() {
             if (player2) {
@@ -1023,8 +1063,13 @@
             playlistArray.unshift(newItem);
             updatePlaylistDisplay(deck);
             updateSongTitle(deck, title);
+            // Atualiza o indicador de próxima música
+    document.getElementById(`nextSongDeck${deck}`).textContent = title;
         }
-
+// Adicione esta função para limpar a próxima música quando começar a tocar
+function clearNextSong(deck) {
+    document.getElementById(`nextSongDeck${deck}`).textContent = 'Nenhuma música na fila';
+}
         function updatePlaylistDisplay(deck) {
             const playlistArray = deck === 1 ? playlist1 : playlist2;
             const playlistElement = document.getElementById(`playlist${deck}`);
