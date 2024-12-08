@@ -115,13 +115,14 @@
       width: 40px;
       height: 40px;
       margin-right: 10px;
-      animation: spin 2s linear infinite;
+      animation: discAnimation 2s linear infinite;
       display: none; /* Hidden by default, shown when playing */
     }
 
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+    @keyframes discAnimation {
+      0% { opacity: 1; transform: rotate(0deg); }
+      50% { opacity: 0.5; transform: rotate(180deg); }
+      100% { opacity: 1; transform: rotate(360deg); }
     }
 
     .player-header {
@@ -137,16 +138,6 @@
     .player-controls .btn {
       padding: 5px 15px;
       margin-right: 5px;
-    }
-
-    .crossfader-container {
-      text-align: center;
-      padding: 20px;
-    }
-
-    .crossfader {
-      width: 100%;
-      margin: 20px 0;
     }
 
     .playlist-header {
@@ -250,43 +241,32 @@
 
     .playlist-item {
       display: grid;
-      grid-template-columns: 100px 1fr 50px; /* Reduced thumbnail width, more space for title */
+      grid-template-columns: 80px 1fr 120px; /* Increased space for button */
       gap: 10px;
       align-items: center;
-      padding: 8px;
+      padding: 10px;
       margin: 5px 0;
       background: #111;
       border-radius: 5px;
       transition: background 0.3s;
-    }
-
-    .playlist-item:hover {
-      background: #222;
+      min-height: 60px;
     }
 
     .playlist-item img {
-      width: 100px; /* Smaller thumbnail */
-      height: 56px; /* Maintain 16:9 aspect ratio */
+      width: 80px;
+      height: 45px;
       object-fit: cover;
       border-radius: 4px;
     }
 
     .playlist-item span {
-      font-size: 0.9em; /* Slightly smaller font */
-      line-height: 1.3;
-      white-space: normal; /* Allow text wrapping */
-      overflow: hidden;
+      font-size: 0.9em;
+      line-height: 1.2;
       display: -webkit-box;
-      -webkit-line-clamp: 2; /* Show max 2 lines */
+      -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
+      overflow: hidden;
       color: var(--secondary-color);
-    }
-
-    .playlist-item .btn-custom {
-      padding: 4px 8px;
-      font-size: 0.8em;
-      width: 40px;
-      height: 32px;
     }
 
     /* Style improvements for search results */
@@ -378,24 +358,28 @@
     }
 
     .volume-control {
-      position: relative;
-      right: auto;
-      top: auto;
-      transform: none;
-      height: auto;
+      margin-top: 10px;
       display: flex;
-      flex-direction: row;
       align-items: center;
-      gap: 15px;
-      margin-top: 15px;
+      gap: 10px;
     }
 
     .volume-slider {
-      -webkit-appearance: slider-horizontal;
-      writing-mode: horizontal-tb;
-      width: 100%;
-      height: 8px;
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
       background: #333;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--primary-color);
+      border-radius: 50%;
+      cursor: pointer;
     }
 
     .volume-value {
@@ -516,6 +500,13 @@
       color: var(--secondary-color);
       margin-bottom: 0.5rem;
     }
+
+    .how-to-use-container {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -537,6 +528,12 @@
 
     <div class="scrolling-text">
       <p>YOUTUBEAUTO-DJ MIX Beta - Um projeto experimental desenvolvido por Cleber Ribeiro | Ideal para festas e encontros com amigos | Protótipo em desenvolvimento</p>
+    </div>
+
+    <div class="how-to-use-container">
+      <button class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#howToUseModal">
+        <i class="fas fa-question-circle"></i> COMO USAR
+      </button>
     </div>
 
     <div class="search-container">
@@ -588,6 +585,9 @@
             <button class="btn btn-custom" onclick="stopPlayer1()">
               <i class="fas fa-stop"></i>
             </button>
+            <button class="btn btn-custom" onclick="transitionToPlayer2()">
+              <i class="fas fa-exchange-alt"></i> Transição para Canal 2
+            </button>
           </div>
           <div class="volume-label">Volume</div>
           <div class="volume-control">
@@ -618,6 +618,9 @@
             <button class="btn btn-custom" onclick="stopPlayer2()">
               <i class="fas fa-stop"></i>
             </button>
+            <button class="btn btn-custom" onclick="transitionToPlayer1()">
+              <i class="fas fa-exchange-alt"></i> Transição para Canal 1
+            </button>
           </div>
           <div class="volume-label">Volume</div>
           <div class="volume-control">
@@ -634,13 +637,6 @@
         </h3>
         <div id="mostPlayed"></div>
       </div>
-    </div>
-
-    <div class="crossfader-container">
-      <button class="btn btn-custom" onclick="makeTransition()">
-        <i class="fas fa-exchange-alt"></i> Fazer Transição
-      </button>
-      <input type="range" class="crossfader" id="crossfader" min="0" max="100" value="50">
     </div>
 
     <div class="footer">
@@ -667,13 +663,42 @@
         </div>
       </div>
     </div>
+
+    <div class="modal fade" id="howToUseModal" tabindex="-1" aria-labelledby="howToUseModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+          <div class="modal-header">
+            <h5 class="modal-title" id="howToUseModalLabel">Como Usar o YOUTUBEAUTO-DJ MIX</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <h6>Passo a Passo:</h6>
+            <ol>
+              <li>Busque músicas usando a barra de pesquisa ou adicione links do YouTube diretamente através do botão "Add Link"</li>
+              <li>A primeira música adicionada começará a tocar automaticamente no Canal 1</li>
+              <li>A segunda música será carregada no Canal 2 (em espera)</li>
+              <li>Músicas adicionadas após isso irão para a Playlist</li>
+              <li>30 segundos antes do fim de cada música, o sistema fará a transição automática entre os canais</li>
+              <li>Use o botão "Fazer Transição" para alternar manualmente entre os canais</li>
+              <li>Controle o volume de cada canal independentemente usando os controles deslizantes</li>
+              <li>As músicas já tocadas aparecem em "As Mais Tocadas" e podem ser readicionadas à Playlist</li>
+            </ol>
+            <p><strong>Dica:</strong> Para melhor experiência, use uma conta Premium do YouTube para evitar propagandas!</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-custom" data-bs-dismiss="modal">Entendi!</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const API_KEYS = [
-      'AIzaSyChVUNk1BmpwJySZsIB07JyXwHmjd7KsAQ',  
-      'AIzaSyBQRs4r0j6mRY5CDq4R3IjqOFt7Rkr2-T0'
+      'AIzaSyBQRs4r0j6mRY5CDq4R3IjqOFt7Rkr2-T0',
+      'AIzaSyDEnHKQcZyA4BOOurX95PwaR16PO0gP4-4', 
+      'AIzaSyDJOsVQ8C7zgG57RNkWJP8Pz80arkhdR4c'
     ];
 
     let searchCache = {};
@@ -684,6 +709,56 @@
         alertMessage.style.display = 'none';
       }, 10000);
     });
+
+    function addToPlaylist(videoId, title) {
+      // Get current video duration
+      const duration = videoDurations[videoId] || 0;
+      const newVideo = {
+        id: videoId,
+        title: title,
+        duration: duration
+      };
+
+      // If player1 is empty, load directly to player1
+      if (!player1.getVideoData()['video_id']) {
+        player1.loadVideoById(videoId);
+        player1.playVideo();
+        currentPlayingChannel = 1;
+        return;
+      }
+
+      // If player2 is empty, load to player2 but don't play
+      if (!player2.getVideoData()['video_id']) {
+        player2.loadVideoById(videoId);
+        player2.pauseVideo();
+        currentPlayingChannel = 1;
+        return;
+      }
+
+      // Otherwise add to playlist
+      playlist.push(newVideo);
+      updatePlaylist();
+
+      // Clear search results and input after adding
+      document.getElementById('searchResults').innerHTML = '';
+      document.getElementById('searchInput').value = '';
+    }
+
+    function addToMostPlayed(video) {
+      // Check if video already exists in mostPlayedList
+      const existingIndex = mostPlayedList.findIndex(item => item.id === video.id);
+      
+      if (existingIndex === -1) {
+        // Add to most played if not already present
+        mostPlayedList.push(video);
+        // Keep only top 10 most played
+        if (mostPlayedList.length > 10) {
+          mostPlayedList.shift();
+        }
+      }
+      
+      updateMostPlayed();
+    }
 
     function displaySearchResults(results) {
       const searchResultsDiv = document.getElementById('searchResults');
@@ -697,13 +772,15 @@
       results.forEach(item => {
         const div = document.createElement('div');
         div.className = 'result-item';
+        // Properly escape the title for the onclick attribute
+        const escapedTitle = item.snippet.title.replace(/"/g, '&quot;');
         div.innerHTML = `
-          <img src="${item.snippet.thumbnails.default.url}" alt="${item.snippet.title}">
+          <img src="${item.snippet.thumbnails.default.url}" alt="${escapedTitle}">
           <div class="result-info">
-            <h5>${item.snippet.title}</h5>
+            <h5>${escapedTitle}</h5>
             <p>${item.snippet.channelTitle}</p>
             <p>${videoDurations[item.id.videoId] ? formatDuration(videoDurations[item.id.videoId]) : ''}</p>
-            <button class="btn btn-custom" onclick="addToPlaylist('${item.id.videoId}', '${item.snippet.title.replace(/'/g, "\\'")}')">
+            <button class="btn btn-custom" onclick="addToPlaylist('${item.id.videoId}', '${escapedTitle}')">
               <i class="fas fa-plus"></i> Adicionar à Playlist
             </button>
           </div>
@@ -718,11 +795,11 @@
       const searchResultsDiv = document.getElementById('searchResults');
       
       if (!searchTerm) {
-        searchResultsDiv.innerHTML = '<p class="text-danger">Please enter a search term.</p>';
+        searchResultsDiv.innerHTML = '<p class="text-danger">Por favor, digite um termo para pesquisa.</p>';
         return;
       }
 
-      searchResultsDiv.innerHTML = '<p>Searching...</p>';
+      searchResultsDiv.innerHTML = '<p>Pesquisando...</p>';
 
       // Check cache first
       if (searchCache[searchTerm]) {
@@ -730,6 +807,9 @@
         displaySearchResults(searchCache[searchTerm]);
         return;
       }
+
+      let success = false;
+      let lastError = null;
 
       // Try each API key until one works
       for (let apiKey of API_KEYS) {
@@ -745,13 +825,14 @@
 
           if (!searchResponse.ok) {
             console.log(`API key ${apiKey} failed with status ${searchResponse.status}`);
+            lastError = searchResponse.status;
             continue; // Try next API key
           }
 
           const searchData = await searchResponse.json();
           
           if (!searchData.items || searchData.items.length === 0) {
-            searchResultsDiv.innerHTML = '<p class="text-danger">No results found.</p>';
+            searchResultsDiv.innerHTML = '<p class="text-danger">Nenhum resultado encontrado.</p>';
             return;
           }
 
@@ -773,6 +854,7 @@
           // Store results in cache
           searchCache[searchTerm] = searchData.items;
           
+          // Process durations
           searchData.items.forEach((item, index) => {
             if (durationData.items[index]) {
               videoDurations[item.id.videoId] = convertDuration(durationData.items[index].contentDetails.duration);
@@ -780,22 +862,25 @@
           });
 
           displaySearchResults(searchData.items);
-          return; // Success! Exit the function
+          success = true;
+          break; // Success! Exit the loop
 
         } catch (error) {
           console.error('Error with API key:', apiKey, error);
+          lastError = error;
           continue; // Try next API key
         }
       }
 
-      // If we get here, all API keys failed
-      searchResultsDiv.innerHTML = `
-        <div class="alert alert-danger">
-          <i class="fas fa-exclamation-circle"></i>
-          Search failed. Please try again later or contact support.
-          <br>
-          <small>Error details: All API keys exhausted</small>
-        </div>`;
+      if (!success) {
+        searchResultsDiv.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i>
+            Falha na pesquisa. Por favor, tente novamente mais tarde ou entre em contato com o suporte.
+            <br>
+            <small>Detalhes do erro: ${lastError ? `Erro na API (${lastError})` : 'Todas as chaves API foram esgotadas'}</small>
+          </div>`;
+      }
     }
 
     function onPlayer1StateChange(event) {
@@ -827,10 +912,10 @@
           const currentTime = player1.getCurrentTime();
           const timeLeft = duration - currentTime;
 
-          if (timeLeft <= 20 && player2.getVideoData()['video_id'] && 
+          // Start transition at 30 seconds remaining
+          if (timeLeft <= 30 && player2.getVideoData()['video_id'] && 
               player2.getPlayerState() !== YT.PlayerState.PLAYING) {
             makeTransition();
-            player2.playVideo();
           }
         }
 
@@ -839,10 +924,10 @@
           const currentTime = player2.getCurrentTime();
           const timeLeft = duration - currentTime;
 
-          if (timeLeft <= 20 && player1.getVideoData()['video_id'] && 
+          // Start transition at 30 seconds remaining
+          if (timeLeft <= 30 && player1.getVideoData()['video_id'] && 
               player1.getPlayerState() !== YT.PlayerState.PLAYING) {
             makeTransition();
-            player1.playVideo();
           }
         }
       }, 1000);
@@ -870,7 +955,10 @@
           'disablekb': 1,
           'playsinline': 1,
           'rel': 0,
-          'showinfo': 0
+          'showinfo': 0,
+          'origin': window.location.origin,
+          'enablejsapi': 1,
+          'modestbranding': 1
         },
         events: {
           'onReady': function(event) {
@@ -889,7 +977,10 @@
           'disablekb': 1,
           'playsinline': 1,
           'rel': 0,
-          'showinfo': 0
+          'showinfo': 0,
+          'origin': window.location.origin,
+          'enablejsapi': 1,
+          'modestbranding': 1
         },
         events: {
           'onReady': function(event) {
@@ -1147,11 +1238,18 @@
 
     function refillPlaylistFromMostPlayed() {
       if (playlist.length === 0 && mostPlayedList.length > 0) {
+        // Copy all videos from mostPlayedList to playlist
         mostPlayedList.forEach(video => {
-          playlist.push({...video});
+          playlist.push({...video}); 
         });
-        updatePlaylist();
         
+        // Clear most played list
+        mostPlayedList = [];
+        
+        updatePlaylist();
+        updateMostPlayed();
+
+        // Start playing first video if no player is active
         if (player1.getPlayerState() !== YT.PlayerState.PLAYING && 
             player2.getPlayerState() !== YT.PlayerState.PLAYING) {
           const firstVideo = playlist.shift();
@@ -1204,7 +1302,7 @@
         const div = document.createElement('div');
         div.className = 'playlist-item';
         div.innerHTML = `
-          <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${video.title}">
+          <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${video.title.replace(/"/g, '&quot;')}">
           <span>${video.title} (${formatDuration(video.duration)})</span>
           <button class="btn btn-custom" onclick="removeFromPlaylist(${index})">
             <i class="fas fa-trash"></i>
@@ -1223,9 +1321,10 @@
       mostPlayedList.forEach((video, index) => {
         const div = document.createElement('div');
         div.className = 'playlist-item';
+        const escapedTitle = video.title.replace(/"/g, '&quot;');
         div.innerHTML = `
-          <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${video.title}">
-          <span>${video.title} (${formatDuration(video.duration)})</span>
+          <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${escapedTitle}">
+          <span>${escapedTitle} (${formatDuration(video.duration)})</span>
           <button class="btn btn-custom" onclick="addToPlaylistFromMostPlayed(${index})">
             <i class="fas fa-plus"></i> Adicionar à Playlist
           </button>
@@ -1274,19 +1373,55 @@
       document.getElementById('disc2').style.display = 'none';
     }
 
-    function formatDuration(duration) {
-      const totalSeconds = convertDuration(duration);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    function convertDuration(duration) {
+      if (typeof duration === 'number') {
+        return duration;
+      }
+      
+      if (!duration || typeof duration !== 'string') {
+        return 0;
+      }
+
+      try {
+        const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+        
+        if (!match) {
+          return 0;
+        }
+        
+        const hours = (match[1] ? parseInt(match[1].replace('H', '')) : 0);
+        const minutes = (match[2] ? parseInt(match[2].replace('M', '')) : 0);
+        const seconds = (match[3] ? parseInt(match[3].replace('S', '')) : 0);
+        
+        return hours * 3600 + minutes * 60 + seconds;
+      } catch (error) {
+        console.error('Error converting duration:', error);
+        return 0;
+      }
     }
 
-    function convertDuration(duration) {
-      const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-      const hours = parseInt(match[1]) || 0;
-      const minutes = parseInt(match[2]) || 0;
-      const seconds = parseInt(match[3]) || 0;
-      return hours * 3600 + minutes * 60 + seconds;
+    function formatDuration(duration) {
+      if (!duration) {
+        return '0:00';
+      }
+      
+      try {
+        let totalSeconds;
+        if (typeof duration === 'string' && duration.startsWith('PT')) {
+          totalSeconds = convertDuration(duration);
+        } else if (typeof duration === 'number') {
+          totalSeconds = duration;
+        } else {
+          return '0:00';
+        }
+        
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      } catch (error) {
+        console.error('Error formatting duration:', error);
+        return '0:00';
+      }
     }
 
   </script>
