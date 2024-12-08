@@ -772,12 +772,12 @@
       results.forEach(item => {
         const div = document.createElement('div');
         div.className = 'result-item';
-        // Properly escape the title for the onclick attribute
-        const escapedTitle = item.snippet.title.replace(/"/g, '&quot;');
+        // Escape the title and properly close the onclick function call
+        const escapedTitle = item.snippet.title.replace(/'/g, "\\'");
         div.innerHTML = `
           <img src="${item.snippet.thumbnails.default.url}" alt="${escapedTitle}">
           <div class="result-info">
-            <h5>${escapedTitle}</h5>
+            <h5>${item.snippet.title}</h5>
             <p>${item.snippet.channelTitle}</p>
             <p>${videoDurations[item.id.videoId] ? formatDuration(videoDurations[item.id.videoId]) : ''}</p>
             <button class="btn btn-custom" onclick="addToPlaylist('${item.id.videoId}', '${escapedTitle}')">
@@ -1301,8 +1301,10 @@
         totalDuration += video.duration || 0;
         const div = document.createElement('div');
         div.className = 'playlist-item';
+        // Escape the title and properly close the onclick function call
+        const escapedTitle = video.title.replace(/'/g, "\\'");
         div.innerHTML = `
-          <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${video.title.replace(/"/g, '&quot;')}">
+          <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${escapedTitle}">
           <span>${video.title} (${formatDuration(video.duration)})</span>
           <button class="btn btn-custom" onclick="removeFromPlaylist(${index})">
             <i class="fas fa-trash"></i>
@@ -1321,7 +1323,8 @@
       mostPlayedList.forEach((video, index) => {
         const div = document.createElement('div');
         div.className = 'playlist-item';
-        const escapedTitle = video.title.replace(/"/g, '&quot;');
+        // Escape the title and properly close the onclick function call
+        const escapedTitle = video.title.replace(/'/g, "\\'");
         div.innerHTML = `
           <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${escapedTitle}">
           <span>${escapedTitle} (${formatDuration(video.duration)})</span>
@@ -1371,6 +1374,76 @@
     function stopPlayer2() {
       player2.stopVideo();
       document.getElementById('disc2').style.display = 'none';
+    }
+
+    function transitionToPlayer2() {
+      if (player2.getVideoData()['video_id']) {
+        player2.playVideo();
+        let step = 0;
+        const transition = setInterval(() => {
+          step += 5;
+          player1.setVolume(100 - step);
+          player2.setVolume(step);
+          
+          document.getElementById('volumeValue1').textContent = `${100 - step}%`;
+          document.getElementById('volumeValue2').textContent = `${step}%`;
+
+          if (step >= 100) {
+            clearInterval(transition);
+            const video1 = {
+              id: player1.getVideoData().video_id,
+              title: player1.getVideoData().title,
+              duration: player1.getDuration()
+            };
+            addToMostPlayed(video1);
+            player1.stopVideo();
+            
+            if (playlist.length > 0) {
+              const nextVideo = playlist.shift();
+              updatePlaylist();
+              player1.loadVideoById(nextVideo.id);
+              player1.pauseVideo();
+            }
+            
+            currentPlayingChannel = 2;
+          }
+        }, 100);
+      }
+    }
+
+    function transitionToPlayer1() {
+      if (player1.getVideoData()['video_id']) {
+        player1.playVideo();
+        let step = 100;
+        const transition = setInterval(() => {
+          step -= 5;
+          player1.setVolume(100 - step);
+          player2.setVolume(step);
+          
+          document.getElementById('volumeValue1').textContent = `${100 - step}%`;
+          document.getElementById('volumeValue2').textContent = `${step}%`;
+
+          if (step <= 0) {
+            clearInterval(transition);
+            const video2 = {
+              id: player2.getVideoData().video_id,
+              title: player2.getVideoData().title,
+              duration: player2.getDuration()
+            };
+            addToMostPlayed(video2);
+            player2.stopVideo();
+            
+            if (playlist.length > 0) {
+              const nextVideo = playlist.shift();
+              updatePlaylist();
+              player2.loadVideoById(nextVideo.id);
+              player2.pauseVideo();
+            }
+            
+            currentPlayingChannel = 1;
+          }
+        }, 100);
+      }
     }
 
     function convertDuration(duration) {
