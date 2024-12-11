@@ -719,8 +719,8 @@
             <button class="btn btn-custom" onclick="scratchPlayer1()">
               <i class="fas fa-record-vinyl"></i> Scratch
             </button>
-            <button class="btn btn-custom" onclick="transitionToPlayer2()">
-              <i class="fas fa-exchange-alt"></i> Transição para Canal 2
+            <button class="btn btn-custom" onclick="initiateTransition()">
+              <i class="fas fa-exchange-alt"></i> Transição
             </button>
           </div>
           <div class="volume-label">Volume</div>
@@ -774,8 +774,8 @@
             <button class="btn btn-custom" onclick="scratchPlayer2()">
               <i class="fas fa-record-vinyl"></i> Scratch
             </button>
-            <button class="btn btn-custom" onclick="transitionToPlayer1()">
-              <i class="fas fa-exchange-alt"></i> Transição para Canal 1
+            <button class="btn btn-custom" onclick="initiateTransition()">
+              <i class="fas fa-exchange-alt"></i> Transição
             </button>
           </div>
           <div class="volume-label">Volume</div>
@@ -868,7 +868,6 @@
               <ul>
                 <li>Canal 1 e Canal 2 funcionam como players independentes</li>
                 <li>Transição automática 30 segundos antes do fim da música (indicado por timer vermelho piscante)</li>
-                <li>Botão de transição manual entre canais com fade suave</li>
                 <li>Volume independente para cada canal</li>
               </ul>
 
@@ -1086,7 +1085,7 @@
       const duration = videoDurations[videoId] || 0;
       const newVideo = {
         id: videoId,
-        title: title.replace(/(['"])/g, "\\$1"), // Properly escape quotes
+        title: title,
         duration: duration
       };
 
@@ -1099,11 +1098,11 @@
         return;
       }
 
-      // If player2 is empty, load to it  
+      // If player2 is empty, load to it
       if (!player2.getVideoData()['video_id']) {
         player2.loadVideoById(videoId);
-        player2.pauseVideo();
-        currentPlayingChannel = 1; 
+        player2.pauseVideo(); 
+        currentPlayingChannel = 1;
         updateActiveChannel(1);
         return;
       }
@@ -1140,8 +1139,7 @@
       results.forEach(item => {
         const div = document.createElement('div');
         div.className = 'result-item';
-        // Properly escape title for onclick handler
-        const escapedTitle = item.snippet.title.replace(/(['"])/g, "\\$1");
+        const escapedTitle = item.snippet.title.replace(/'/g, "\\'");
         div.innerHTML = `
           <img src="${item.snippet.thumbnails.default.url}" alt="${escapedTitle}">
           <div class="result-info">
@@ -1289,6 +1287,91 @@
       }
       if (event.data === YT.PlayerState.ENDED) {
         handleVideoEnd(2);
+      }
+    }
+
+    function initiateTransition() {
+      if (currentPlayingChannel === 1 && player2.getVideoData()['video_id']) {
+        // Transition from channel 1 to 2
+        player2.playVideo();
+        updateActiveChannel(2);
+        let step = 0;
+        const transition = setInterval(() => {
+          step += 1; // Slower transition - 1% volume change per step
+          player1.setVolume(100 - step);
+          player2.setVolume(step);
+          
+          // Update volume displays
+          document.getElementById('volumeValue1').textContent = `${100 - step}%`;
+          document.getElementById('volumeValue2').textContent = `${step}%`;
+          document.getElementById('volume1').value = 100 - step;
+          document.getElementById('volume2').value = step;
+
+          if (step >= 100) {
+            clearInterval(transition);
+            if (player1.getVideoData()['video_id']) {
+              const video1 = {
+                id: player1.getVideoData().video_id,
+                title: player1.getVideoData().title,
+                duration: player1.getDuration()
+              };
+              addToMostPlayed(video1);
+            }
+            
+            player1.stopVideo();
+            
+            if (playlist.length > 0) {
+              const nextVideo = playlist.shift();
+              updatePlaylist();
+              player1.loadVideoById(nextVideo.id);
+              player1.pauseVideo();
+            }
+            
+            currentPlayingChannel = 2;
+            transitionScheduled = false;
+          }
+        }, 50); // 50ms interval for smoother transition
+        
+      } else if (currentPlayingChannel === 2 && player1.getVideoData()['video_id']) {
+        // Transition from channel 2 to 1
+        player1.playVideo();
+        updateActiveChannel(1);
+        let step = 100;
+        const transition = setInterval(() => {
+          step -= 1; // Slower transition - 1% volume change per step
+          player1.setVolume(100 - step);
+          player2.setVolume(step);
+          
+          // Update volume displays
+          document.getElementById('volumeValue1').textContent = `${100 - step}%`;
+          document.getElementById('volumeValue2').textContent = `${step}%`;
+          document.getElementById('volume1').value = 100 - step;
+          document.getElementById('volume2').value = step;
+
+          if (step <= 0) {
+            clearInterval(transition);
+            if (player2.getVideoData()['video_id']) {
+              const video2 = {
+                id: player2.getVideoData().video_id,
+                title: player2.getVideoData().title,
+                duration: player2.getDuration()
+              };
+              addToMostPlayed(video2);
+            }
+            
+            player2.stopVideo();
+            
+            if (playlist.length > 0) {
+              const nextVideo = playlist.shift();
+              updatePlaylist();
+              player2.loadVideoById(nextVideo.id);
+              player2.pauseVideo();
+            }
+            
+            currentPlayingChannel = 1;
+            transitionScheduled = false;
+          }
+        }, 50); // 50ms interval for smoother transition
       }
     }
 
@@ -1488,7 +1571,7 @@
         totalDuration += video.duration || 0;
         const div = document.createElement('div');
         div.className = 'playlist-item';
-        const escapedTitle = video.title.replace(/(['"])/g, "\\$1");
+        const escapedTitle = video.title.replace(/'/g, "\\'");
         div.innerHTML = `
           <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${escapedTitle}">
           <span>${video.title} (${formatDuration(video.duration)})</span>
@@ -1509,7 +1592,7 @@
       mostPlayedList.forEach((video, index) => {
         const div = document.createElement('div');
         div.className = 'playlist-item';
-        const escapedTitle = video.title.replace(/(['"])/g, "\\$1");
+        const escapedTitle = video.title.replace(/'/g, "\\'");
         div.innerHTML = `
           <img src="https://i.ytimg.com/vi/${video.id}/hqdefault.jpg" alt="${escapedTitle}">
           <span>${escapedTitle} (${formatDuration(video.duration)})</span>
